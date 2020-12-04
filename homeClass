@@ -1,0 +1,2978 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:developer';
+import 'dart:io';
+import 'dart:math' as math;
+import 'dart:math';
+import 'dart:typed_data';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+
+import 'package:age/age.dart';
+import 'package:esys_flutter_share/esys_flutter_share.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_statusbarcolor/flutter_statusbarcolor.dart';
+import 'package:intl/intl.dart';
+import 'package:lovedigits/hero_tag/details.dart';
+import 'package:lovedigits/hero_tag/hero_type.dart';
+import 'package:lovedigits/screens/add_partner.dart';
+import 'package:lovedigits/screens/profile.dart';
+import 'package:lovedigits/screens/random_celebrity.dart';
+import 'package:lovedigits/screens/share_card.dart';
+import 'package:lovedigits/utils/appcolors.dart';
+import 'package:lovedigits/utils/constant.dart';
+import 'package:lovedigits/utils/quite_msg.dart';
+import 'package:page_transition/page_transition.dart';
+import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:rate_my_app/rate_my_app.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:lovedigits/utils/networkHelper.dart';
+import 'package:http/http.dart' as http;
+import 'birth_chart.dart';
+import 'cell_popup.dart';
+import 'menu.dart';
+import 'package:facebook_app_events/facebook_app_events.dart';
+
+class HomeHero extends StatefulWidget {
+  HomeHero({Key key, this.partnerCount, this.celebrityCount}) : super(key: key);
+  int partnerCount;
+  int celebrityCount;
+
+  @override
+  State<StatefulWidget> createState() {
+    return _HomeHero();
+  }
+}
+
+class _HomeHero extends State<HomeHero> with SingleTickerProviderStateMixin {
+  double height = 0.0;
+  double width = 0.0;
+  int currentPage = 0;
+  int partnersCount = 0;
+  int celebrityCount = 0;
+  int scoreText = 0;
+  int scoreNew = 00;
+  var match;
+  bool selectCelebrity = false;
+  bool isAddPartner = false;
+  PageController controller = PageController(viewportFraction: 0.8);
+  bool isDetails = true;
+  Stream slides;
+  String activeTag = "Favorites";
+  bool timeCompleted = false;
+  Animation<double> animation;
+  AnimationController animationController;
+  Animation<double> sizeAnimation;
+  var cardBackColor = Color(0xFF442165);
+  String type = "";
+  var imagePathNakYou;
+  var stringNakYou;
+  var imagePathNakPart;
+  var stringNakPart;
+  var imagePathAscPart;
+  var stringAscPart;
+
+  var cardBackString;
+  var cardBackImagePath;
+
+  var nakshatraString;
+  var userNaksImage;
+
+  var imagePathAscYou;
+  var stringAscYou;
+
+  var sunSignYou;
+  var sunSignPart;
+  var imageSunSignYou;
+  var imageSunSignPart;
+
+  var birthNumberYou;
+  var birthNumberPart;
+  var lifePathYou;
+  var lifePathPart;
+
+  bool isClickedMenu = true;
+  bool isClickedMenuCard = true;
+  bool isCelebClick = false;
+
+  String my_name = "";
+  String my_birth_country_code;
+  String my_birth_date;
+  String my_birth_time;
+  String my_birth_latitude;
+  String my_birth_longitude = "";
+  String my_location_name = "";
+  String my_gender = "";
+  String partner_birth_country_code = "";
+  String partner_name = "";
+  String partner_birth_date = "";
+  String partner_birth_time = "";
+  String partner_birth_latitude = "";
+  String partner_birth_longitude = "";
+  String partner_gender = "";
+  String partnerListJson = "";
+  String celebrityListJson = "";
+  bool active = false;
+  int homeIndex = 0;
+  File _image;
+  bool isLongPress = false;
+  var file;
+  String my_image = "";
+  GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey();
+
+  List<dynamic> partnerListItemArray = new List();
+  List<dynamic> celebrityListItemArray = new List();
+
+  List<dynamic> celebrityList = new List();
+  List<String> celebrityInList = new List();
+  List<dynamic> randomCelebrityList = new List();
+
+  Map<String, dynamic> celebrityListObject = {};
+  SharedPreferences prefs;
+  bool isExpand = false;
+  bool isExpandAfter = false;
+  bool isPartnerExpand = true;
+
+  bool isScrolling = false;
+  bool isCenter = false;
+
+  var chartDataArray;
+  var nakshastraDep;
+  var nakshastra;
+  var match_comparison;
+  var partner_data, my_data;
+  var chartDataArrayPartner;
+  var nakshastraPartner;
+
+  AnimationController expandController;
+  Animation<Offset> offset;
+  double offSetCel = 0.0;
+  double offSetPart = 0.0;
+
+  var scroll;
+  var randomCelebrity;
+
+  final FirebaseAnalytics analytics = FirebaseAnalytics();
+
+  String selected = "first";
+
+  int countUp = 0;
+
+  Timer _timer;
+  double _start = 0.8;
+  AlertDialog alert;
+
+  List _heroTypeList = List<HeroType>();
+  double _screenWidthAdjustment;
+
+  List<dynamic> levelDes1 = [
+    "Tricky Match",
+    "Weak Match",
+    "Not Very Promising"
+  ];
+  List<dynamic> levelDes2 = [
+    "Challenging Match",
+    "Proceed with Caution",
+    "Watch Your Step"
+  ];
+  List<dynamic> levelDes3 = ["Toss Up", "It's a Gamble", "It's a So-So Match"];
+  List<dynamic> levelDes4 = [
+    "Promising Match",
+    "Encouraging Match",
+    "Favourable Match"
+  ];
+  List<dynamic> levelDes5 = [
+    "Definitely A Catch",
+    "Fantastic Match",
+    "Excellent Match"
+  ];
+  List<dynamic> levelDes6 = [
+    "5 Stars!!!",
+    "Out-of-this-World!",
+    "Match Made in Heaven!"
+  ];
+
+  String description = "";
+  String level = "";
+  var year;
+
+  List<dynamic> celebrityListNew = new List();
+  static final facebookAppEvents = FacebookAppEvents();
+
+  RateMyApp rateMyApp = RateMyApp(
+    preferencesPrefix: 'rateMyApp_',
+    minDays: 3,
+    minLaunches: 7,
+    remindDays: 2,
+    remindLaunches: 5,
+    googlePlayIdentifier: 'com.lovedigits.llc',
+    appStoreIdentifier: '1532210143',
+  );
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    analytics.setCurrentScreen(screenName: "/home");
+    analytics.logEvent(name: 'open_app');
+
+    _heroTypeList = HeroType().createSampleList();
+
+    getIndex();
+    getSignUpValues();
+    prepareAnimations();
+    _setIsSecondTime();
+  }
+
+  _setIsSecondTime() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    var count = 1;
+    if (prefs.getInt('isSecondTime') != null) {
+      count = prefs.getInt('isSecondTime');
+      count++;
+    }
+    prefs.setInt('isSecondTime', count);
+    if (count == 2) {
+      rateMyApp.init().then((_) {
+        rateMyApp.showRateDialog(
+          context,
+          title: 'Rate This App',
+          message:
+              'If you like this app, please take a minute to review it. It really helps us.',
+          // The dialog message.
+          rateButton: 'RATE',
+          noButton: 'NO THANKS',
+          laterButton: 'MAYBE LATER',
+          listener: (button) {
+            switch (button) {
+              case RateMyAppDialogButton.rate:
+                break;
+              case RateMyAppDialogButton.later:
+                break;
+              case RateMyAppDialogButton.no:
+                break;
+            }
+
+            return true;
+          },
+          ignoreNativeDialog: Platform.isAndroid,
+          dialogStyle: DialogStyle(),
+          onDismissed: () =>
+              rateMyApp.callEvent(RateMyAppEventType.laterButtonPressed),
+        );
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    expandController.dispose();
+  }
+
+  _listener() {
+    int next = controller.page.round();
+    if (currentPage != next) {
+      currentPage = next;
+      isCenter = false;
+    }
+
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      isScrolling = controller.position.isScrollingNotifier.value;
+
+      if (!isScrolling) {
+        if (!isCenter) {
+          isCenter = true;
+
+          controller.animateToPage(currentPage,
+              duration: Duration(milliseconds: 500),
+              curve: Curves.easeOutQuint);
+        } else {}
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    width = MediaQuery.of(context).size.width;
+    height = MediaQuery.of(context).size.height;
+
+    controller.addListener(_listener);
+
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: WillPopScope(
+        onWillPop: () async {
+          QuiteMsg.showExitAlertDialog(context);
+        },
+        child: Scaffold(
+          key: _scaffoldKey,
+          drawerScrimColor: AppColors.primaryBackground.withOpacity(0.9),
+          drawerDragStartBehavior: DragStartBehavior.down,
+          drawer: SizedBox(
+            width: width,
+            height: height,
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                canvasColor: Colors.transparent,
+              ),
+              child: Drawer(
+                elevation: 0.0,
+                child: Container(
+                  child: Menu(),
+                ),
+              ),
+            ),
+          ),
+          body: isExpand
+              ? Container(
+                  child: isPartnerExpand
+                      ? _partnerViewPage(homeIndex, true)
+                      : _buildCelebrityViewPage(homeIndex, active),
+                )
+              : Stack(children: [
+                  Container(
+                    color: Colors.white,
+                    child: PageView.builder(
+                        pageSnapping: false,
+                        allowImplicitScrolling: true,
+                        controller: controller,
+                        scrollDirection: Axis.horizontal,
+                        itemCount: null,
+                        physics: isLongPress
+                            ? const NeverScrollableScrollPhysics()
+                            : null,
+                        // ignore: missing_return
+                        itemBuilder: (BuildContext context, int index) {
+                          SchedulerBinding.instance.addPostFrameCallback((_) {
+                            if (scroll != null) {
+                              controller.animateToPage(scroll,
+                                  duration: Duration(milliseconds: 500),
+                                  curve: Curves.easeOutQuint);
+                            }
+                          });
+
+                          if (isExpandAfter) {
+                            controller.animateToPage(homeIndex,
+                                duration: Duration(milliseconds: 50),
+                                curve: Curves.easeOutQuint);
+
+                            isExpandAfter = false;
+                          }
+
+                          if (index == 0) {
+                            return _buildTagPage();
+                          } else if (index == 1) {
+                            active = (index == currentPage);
+
+                            return _buildAddPartner(index, active);
+                          } else if (partnersCount + 2 > index) {
+                            active = (index == currentPage);
+
+                            return _partnerViewPage(index, active);
+                          } else if (partnersCount + celebrityCount + 2 >
+                              index) {
+                            active = (index == currentPage);
+
+                            return _buildCelebrityViewPage(index, active);
+                          } else if (partnersCount + celebrityCount + 2 ==
+                              index) {
+                            return _buildAddCelebrityPage();
+                          }
+                        }),
+                  ),
+                  Positioned(
+                      top: (height / 8) * 0.20,
+                      left: 0,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 5),
+                        child: selectCelebrity
+                            ? Align()
+                            : Align(
+                                alignment: Alignment.centerLeft,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 10),
+                                  child: GestureDetector(
+                                    child: Container(
+                                      color: Colors.transparent,
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                            right: 20,
+                                            bottom: 20,
+                                            top: 15,
+                                            left: 15),
+                                        child: Image(
+                                          height: height / 30,
+                                          width: height / 30,
+                                          image: AssetImage('assets/menu.png'),
+                                        ),
+                                      ),
+                                    ),
+                                    onTap: () {
+                                      _scaffoldKey.currentState.openDrawer();
+                                    },
+                                  ),
+                                ),
+                              ),
+                      )),
+                  Positioned(
+                    height: height / 8,
+                    bottom: 0,
+                    width: width,
+                    child: selectCelebrity
+                        ? Align()
+                        : Align(
+                            alignment: Alignment.bottomCenter,
+                            child: SizedBox(
+                                height: height / 6.5,
+                                child: Container(
+                                    color: AppColors.accentText,
+                                    padding: EdgeInsets.only(top: height / 50),
+                                    child: Row(
+                                      children: <Widget>[
+                                        Expanded(
+                                          flex: 1,
+                                          child: GestureDetector(
+                                            child: Container(
+                                              color: Colors.transparent,
+                                              child: Column(
+                                                children: <Widget>[
+                                                  Container(
+                                                    child: SizedBox(
+                                                      height: (height / 18),
+                                                      child: Image.asset(
+                                                          "assets/nav/profile.png",
+                                                          fit:
+                                                              BoxFit.fitHeight),
+                                                    ),
+                                                  ),
+                                                  Container(
+                                                    child: new Text(
+                                                      "Profile",
+                                                      textAlign: TextAlign.left,
+                                                      style: TextStyle(
+                                                        color: AppColors
+                                                            .primaryBackground,
+                                                        fontFamily:
+                                                            "Barlow-Regular",
+                                                        fontSize: 15,
+                                                      ),
+                                                    ),
+                                                  )
+                                                ],
+                                              ),
+                                            ),
+                                            onTap: () {
+                                              analytics.logEvent(
+                                                  name: "view_profile");
+                                              facebookAppEvents.logEvent(
+                                                  name: 'view_profile');
+                                              prefs.setInt('home_index', 0);
+
+                                              Navigator.push(
+                                                  context,
+                                                  PageTransition(
+                                                      type: PageTransitionType
+                                                          .fade,
+                                                      duration: Duration(
+                                                          milliseconds: 700),
+                                                      child: Profile(
+                                                          screenHeight:
+                                                              height)));
+                                            },
+                                          ),
+                                        ),
+                                        Expanded(
+                                          flex: 1,
+                                          child: GestureDetector(
+                                            child: Container(
+                                              color: Colors.transparent,
+                                              child: Column(
+                                                children: <Widget>[
+                                                  Container(
+                                                    child: SizedBox(
+                                                      height: (height / 18),
+                                                      child: Image.asset(
+                                                          "assets/nav/add_partner.png",
+                                                          fit: BoxFit.fitWidth),
+                                                    ),
+                                                  ),
+                                                  Container(
+                                                    child: new Text(
+                                                      "Add Partner",
+                                                      textAlign: TextAlign.left,
+                                                      style: TextStyle(
+                                                        color: AppColors
+                                                            .primaryBackground,
+                                                        fontFamily:
+                                                            "Barlow-Regular",
+                                                        fontSize: 15,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            onTap: () {
+                                              analytics.logEvent(
+                                                  name: "add_partner");
+                                              facebookAppEvents.logEvent(
+                                                  name: 'add_partner');
+
+                                              prefs.setInt(
+                                                  'home_index', currentPage);
+
+                                              if (currentPage == 1) {
+                                                Navigator.push(
+                                                  context,
+                                                  PageTransition(
+                                                      type: PageTransitionType
+                                                          .fade,
+                                                      duration: Duration(
+                                                          milliseconds: 700),
+                                                      child: AddPartner()),
+                                                );
+                                              } else {
+                                                controller.animateToPage(1,
+                                                    duration: Duration(
+                                                        milliseconds: 500),
+                                                    curve: Curves.easeOutQuint);
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                        Expanded(
+                                          flex: 1,
+                                          child: GestureDetector(
+                                            child: Container(
+                                              color: Colors.transparent,
+                                              child: Column(
+                                                children: <Widget>[
+                                                  Container(
+                                                    child: SizedBox(
+                                                      height: (height / 18),
+                                                      child: Image.asset(
+                                                          "assets/nav/celebrity.png",
+                                                          fit:
+                                                              BoxFit.fitHeight),
+                                                    ),
+                                                  ),
+                                                  Container(
+                                                    child: new Text(
+                                                      "Celebrity",
+                                                      textAlign: TextAlign.left,
+                                                      style: TextStyle(
+                                                        color: AppColors
+                                                            .primaryBackground,
+                                                        fontFamily:
+                                                            "Barlow-Regular",
+                                                        fontSize: 15,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            onTap: () {
+                                              prefs.setInt(
+                                                  'home_index', currentPage);
+                                              controller.animateToPage(
+                                                  partnersCount +
+                                                      celebrityCount +
+                                                      2,
+                                                  duration: Duration(
+                                                      milliseconds: 500),
+                                                  curve: Curves.easeOutQuint);
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ))),
+                          ),
+                  ),
+                  Positioned(
+                    top: height / 6.7,
+                    right: 22,
+                    height: height / 25,
+                    child: isLongPress
+                        ? FloatingActionButton(
+                            heroTag: "btn1",
+                            backgroundColor: AppColors.primaryElement,
+                            onPressed: () {
+                              if (partnersCount + 2 > currentPage) {
+                                partnerListItemArray.removeAt(currentPage - 2);
+                                String partnerListJson =
+                                    jsonEncode(partnerListItemArray);
+                                prefs.setString(
+                                    'partnerListJson', partnerListJson);
+                                partnersCount = partnersCount - 1;
+                              } else if (partnersCount + celebrityCount + 2 >
+                                  currentPage) {
+                                List<String> prefCelebrity =
+                                    (prefs.getStringList('celebrityIn') ??
+                                        List<String>());
+                                String deleteName = celebrityListItemArray[
+                                        currentPage - (partnersCount + 2)]
+                                    ['partner_name'];
+                                if (prefCelebrity.contains(deleteName)) {
+                                  prefCelebrity.remove(deleteName);
+                                  prefs.remove("celebrityIn");
+                                  prefs.setStringList(
+                                      'celebrityIn', prefCelebrity);
+                                }
+
+                                celebrityListItemArray.removeAt(
+                                    currentPage - (partnersCount + 2));
+
+                                String celebrityListJson =
+                                    jsonEncode(celebrityListItemArray);
+                                prefs.setString(
+                                    'celebrityListJson', celebrityListJson);
+                                celebrityCount = celebrityCount - 1;
+                              }
+                              setState(() {
+                                isLongPress = false;
+                              });
+                            },
+                            child: Icon(
+                              Icons.remove,
+                              color: AppColors.accentText,
+                            ))
+                        : Container(),
+                  ),
+                ]),
+        ),
+      ),
+    );
+  }
+
+  showSnackbar(BuildContext context, String msg) {
+    final snackBar = SnackBar(
+      content: Text(msg),
+      backgroundColor: AppColors.primaryElement,
+    );
+    _scaffoldKey.currentState.showSnackBar(snackBar);
+  }
+
+  List<Color> colors = [
+    Color(0xFF442165),
+    Color(0xFF492070),
+    Color(0xFF522280),
+    Color(0xFF551E89),
+  ];
+  List<Color> colorsCeleb = [
+    Color(0xFF442165),
+    Color(0xFF492070),
+    Color(0xFF522280),
+    Color(0xFF551E89),
+  ];
+
+  _partnerViewPage(int index, bool active) {
+    if (currentPage == index) {
+      active = true;
+      type = 'partner';
+    }
+
+    final double blur = active ? 10 : 0;
+    final double offSet = active ? 10 : 0;
+    final double top = height / 6;
+    ScreenshotController screenshotController = ScreenshotController();
+
+    return GestureDetector(
+        onPanUpdate: (details) {
+          if (isLongPress) {
+            setState(() {
+              isLongPress = false;
+            });
+          } else {
+            if (details.delta.dy > 0) {
+            } else if (details.delta.dy < 0) {
+              Navigator.of(context).push(
+                PageRouteBuilder(
+                  fullscreenDialog: true,
+                  transitionDuration: Duration(milliseconds: 1000),
+                  pageBuilder: (BuildContext context,
+                      Animation<double> animation,
+                      Animation<double> secondaryAnimation) {
+                    return Details(
+                      dataObject: partnerListItemArray[index - 2],
+                      score: _getScore(index - 2),
+                      description: partnerListItemArray[index - 2]
+                          ['partner_score_description'],
+                      type: 'partner',
+                      image: _getCardBackImagePart(index - 2),
+                      age:
+                          "Age ${_getPartnerAge("${partnerListItemArray[index - 2]['partner_birth_date']}")}",
+                      color: Color(int.parse(partnerListItemArray[index - 2]
+                              ['partner_color']
+                          .toString()
+                          .replaceAll("Color(", "")
+                          .replaceAll(")", ""))),
+                      screenHeight: height,
+                    );
+                  },
+                  transitionsBuilder: (BuildContext context,
+                      Animation<double> animation,
+                      Animation<double> secondaryAnimation,
+                      Widget child) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    );
+                  },
+                ),
+              );
+            }
+          }
+        },
+        onLongPress: () {
+          if (currentPage == 0 ||
+              currentPage == 1 ||
+              partnersCount + celebrityCount + 2 == currentPage ||
+              selectCelebrity) {
+          } else {
+            setState(() {
+              isLongPress = true;
+              controller.animateToPage(index,
+                  duration: Duration(milliseconds: 100),
+                  curve: Curves.easeOutQuint);
+            });
+          }
+        },
+        onTap: () {
+          if (isLongPress) {
+            setState(() {
+              isLongPress = false;
+            });
+          } else {
+            analytics.logEvent(name: "view_partner_details");
+            facebookAppEvents.logEvent(name: 'view_partner_details');
+
+            Navigator.of(context).push(
+              PageRouteBuilder(
+                fullscreenDialog: true,
+                transitionDuration: Duration(milliseconds: 1000),
+                pageBuilder: (BuildContext context, Animation<double> animation,
+                    Animation<double> secondaryAnimation) {
+                  return Details(
+                    dataObject: partnerListItemArray[index - 2],
+                    score: _getScore(index - 2),
+                    description: partnerListItemArray[index - 2]
+                        ['partner_score_description'],
+                    type: 'partner',
+                    image: _getCardBackImagePart(index - 2),
+                    age:
+                        "Age ${_getPartnerAge("${partnerListItemArray[index - 2]['partner_birth_date']}")}",
+                    color: Color(int.parse(partnerListItemArray[index - 2]
+                            ['partner_color']
+                        .toString()
+                        .replaceAll("Color(", "")
+                        .replaceAll(")", ""))),
+                    screenHeight: height,
+                  );
+                },
+                transitionsBuilder: (BuildContext context,
+                    Animation<double> animation,
+                    Animation<double> secondaryAnimation,
+                    Widget child) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: child,
+                  );
+                },
+              ),
+            );
+          }
+        },
+        child: AnimatedContainer(
+            duration: Duration(milliseconds: 1000),
+            curve: Curves.easeOutQuint,
+            width: width,
+            margin: EdgeInsets.only(
+                top: top, bottom: height / 5.65, right: 10, left: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: blur,
+                    offset: Offset(offSet, offSet))
+              ],
+            ),
+            child: Screenshot(
+                controller: screenshotController,
+                child: Container(
+                    decoration: new BoxDecoration(
+                        borderRadius: new BorderRadius.all(
+                      const Radius.circular(20.0),
+                    )),
+                    clipBehavior: Clip.antiAlias,
+                    child: Stack(
+                      children: <Widget>[
+                        Hero(
+                            tag: 'background' +
+                                partnerListItemArray[index - 2]['partner_name'],
+                            child: Container(
+                              decoration: new BoxDecoration(
+                                  color: Color(int.parse(
+                                      partnerListItemArray[index - 2]
+                                              ['partner_color']
+                                          .toString()
+                                          .replaceAll("Color(", "")
+                                          .replaceAll(")", ""))),
+                                  borderRadius: new BorderRadius.all(
+                                    const Radius.circular(20.0),
+                                  )),
+                            )),
+                        Center(
+                          child: Container(
+                            padding: EdgeInsets.only(bottom: height / 13),
+                            height: height,
+                            width: width,
+                            child: Hero(
+                              tag: 'backgroundImage' +
+                                  partnerListItemArray[index - 2]
+                                      ['partner_name'],
+                              child: Image.asset(
+                                '${_getCardBackImagePart(index - 2)}',
+                                height: height / 4,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                            top: 20,
+                            left: 20,
+                            width: _screenWidthAdjustment,
+                            child: Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Container(
+                                      padding: const EdgeInsets.only(right: 5),
+                                      child: Hero(
+                                          tag: 'name' +
+                                              partnerListItemArray[index - 2]
+                                                  ['partner_name'],
+                                          child: Material(
+                                              color: Colors.transparent,
+                                              child: Text(
+                                                '${partnerListItemArray[index - 2]['partner_name']}',
+                                                style: TextStyle(
+                                                    color: AppColors.accentText,
+                                                    fontSize: 22,
+                                                    fontFamily:
+                                                        'Barlow-Medium'),
+                                              )))),
+                                  SizedBox(
+                                    height: 5,
+                                  ),
+                                  Hero(
+                                      tag: 'subtitle' +
+                                          partnerListItemArray[index - 2]
+                                              ['partner_name'],
+                                      child: Material(
+                                          color: Colors.transparent,
+                                          child: Text(
+                                            "Age ${_getPartnerAge("${partnerListItemArray[index - 2]['partner_birth_date']}")}",
+                                            style: TextStyle(
+                                                color: AppColors.accentText,
+                                                fontSize: 16,
+                                                fontFamily: 'Barlow-Light'),
+                                          )))
+                                ])),
+                        Container(),
+                        Positioned(
+                          top: 30,
+                          right: 20,
+                          height: height / 22,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                isClickedMenuCard = false;
+                              });
+                              _showShareDialog(context, index);
+                            },
+                            child: isClickedMenuCard
+                                ? Image(
+                                    height: height / 22,
+                                    image: AssetImage('assets/white_menu.png'),
+                                  )
+                                : Container(),
+                          ),
+                        ),
+                        Positioned(
+                          top: height / 2.2,
+                          left: width / 3.4,
+                          child: Hero(
+                            tag: 'score' +
+                                partnerListItemArray[index - 2]['partner_name'],
+                            child: Container(
+                              height: height / 10,
+                              decoration: BoxDecoration(
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color: Color(0xFF3F2063),
+                                        blurRadius: 5.0,
+                                        spreadRadius: 0.01),
+                                  ],
+                                  gradient: new LinearGradient(
+                                    colors: [
+                                      const Color(0xFF3F2063),
+                                      const Color(0xFF6E2A73),
+                                    ],
+                                    begin: const FractionalOffset(0.0, 0.0),
+                                    end: const FractionalOffset(0.5, 1.0),
+                                  ),
+                                  color: AppColors.secondaryBackground,
+                                  shape: BoxShape.circle),
+                              child: Padding(
+                                padding: const EdgeInsets.all(2.0),
+                                child: CircularPercentIndicator(
+                                  radius: height / 12,
+                                  animation: false,
+                                  lineWidth: 1.0,
+                                  center: new Text(
+                                    '${_getScore(index - 2)}%',
+                                    style: TextStyle(
+                                        color: AppColors.accentText,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                        fontFamily: 'Rubik-Medium'),
+                                  ),
+                                  percent: scoreText / 100,
+                                  backgroundColor: Colors.transparent,
+                                  progressColor: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: height / 1.75,
+                          left: width / 20,
+                          right: width / 20,
+                          child: Hero(
+                            tag: 'description' +
+                                partnerListItemArray[index - 2]['partner_name'],
+                            child: Center(
+                              child: Material(
+                                color: Colors.transparent,
+                                child: Text(
+                                  "${partnerListItemArray[index - 2]['partner_score_description']}",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      fontFamily: 'Barlow-Regular',
+                                      fontSize: 16.0,
+                                      decoration: TextDecoration.none,
+                                      color: AppColors.accentText),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          alignment: Alignment.bottomCenter,
+                          child: Hero(
+                            tag: 'subtitles' +
+                                partnerListItemArray[index - 2]['partner_name'],
+                            child: Container(),
+                          ),
+                        ),
+                      ],
+                    )))));
+  }
+
+  _buildCelebrityViewPage(int index, bool active) {
+    if (currentPage == index) {
+      active = true;
+      type = 'celebrity';
+    }
+
+    final double blur = active ? 10 : 0;
+    final double offSet = active ? 10 : 0;
+    final double top = height / 6;
+    ScreenshotController screenshotController = ScreenshotController();
+
+    return GestureDetector(
+        onPanUpdate: (details) {
+          if (isLongPress) {
+            setState(() {
+              isLongPress = false;
+            });
+          } else {
+            if (details.delta.dy > 0) {
+            } else if (details.delta.dy < 0) {
+              Navigator.of(context).push(
+                PageRouteBuilder(
+                  fullscreenDialog: true,
+                  transitionDuration: Duration(milliseconds: 1000),
+                  pageBuilder: (BuildContext context,
+                      Animation<double> animation,
+                      Animation<double> secondaryAnimation) {
+                    return Details(
+                      dataObject:
+                          celebrityListItemArray[index - (partnersCount + 2)],
+                      score: _getCelebrityScore(index - (partnersCount + 2)),
+                      description:
+                          celebrityListItemArray[index - (partnersCount + 2)]
+                              ['partner_score_description'],
+                      type: 'celebrity',
+                      image:
+                          "assets/celebrity_card/${celebrityListItemArray[index - (partnersCount + 2)]['partner_name'].toString().toLowerCase().replaceAll(' ', '_')}.jpg",
+                      age: "Celebrity",
+                      screenHeight: height,
+                    );
+                  },
+                  transitionsBuilder: (BuildContext context,
+                      Animation<double> animation,
+                      Animation<double> secondaryAnimation,
+                      Widget child) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    );
+                  },
+                ),
+              );
+            }
+          }
+        },
+        onLongPress: () {
+          if (currentPage == 0 ||
+              currentPage == 1 ||
+              partnersCount + celebrityCount + 2 == currentPage ||
+              selectCelebrity) {
+          } else {
+            setState(() {
+              isLongPress = true;
+              controller.animateToPage(index,
+                  duration: Duration(milliseconds: 100),
+                  curve: Curves.easeOutQuint);
+            });
+          }
+        },
+        onTap: () {
+          if (isLongPress) {
+            setState(() {
+              isLongPress = false;
+            });
+          } else {
+            analytics.logEvent(name: "view_celebrity_details");
+            facebookAppEvents.logEvent(name: 'view_celebrity_details');
+
+            Navigator.of(context).push(
+              PageRouteBuilder(
+                fullscreenDialog: true,
+                transitionDuration: Duration(milliseconds: 1000),
+                pageBuilder: (BuildContext context, Animation<double> animation,
+                    Animation<double> secondaryAnimation) {
+                  return Details(
+                    dataObject:
+                        celebrityListItemArray[index - (partnersCount + 2)],
+                    score: _getCelebrityScore(index - (partnersCount + 2)),
+                    description:
+                        celebrityListItemArray[index - (partnersCount + 2)]
+                            ['partner_score_description'],
+                    type: 'celebrity',
+                    image:
+                        "assets/celebrity_card/${celebrityListItemArray[index - (partnersCount + 2)]['partner_name'].toString().toLowerCase().replaceAll(' ', '_')}.jpg",
+                    age: "Celebrity",
+                    screenHeight: height,
+                  );
+                },
+                transitionsBuilder: (BuildContext context,
+                    Animation<double> animation,
+                    Animation<double> secondaryAnimation,
+                    Widget child) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: child,
+                  );
+                },
+              ),
+            );
+          }
+        },
+        child: AnimatedContainer(
+            duration: Duration(milliseconds: 1000),
+            curve: Curves.easeOutQuint,
+            width: width,
+            margin: EdgeInsets.only(
+                top: top, bottom: height / 5.65, right: 10, left: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: blur,
+                    offset: Offset(offSet, offSet))
+              ],
+            ),
+            child: Screenshot(
+                controller: screenshotController,
+                child: Container(
+                    decoration: new BoxDecoration(
+                        borderRadius: new BorderRadius.all(
+                      const Radius.circular(20.0),
+                    )),
+                    clipBehavior: Clip.antiAlias,
+                    child: Stack(
+                      children: <Widget>[
+                        Hero(
+                            tag: 'background' +
+                                celebrityListItemArray[index -
+                                    (partnersCount + 2)]['partner_name'],
+                            child: Container(
+                              decoration: new BoxDecoration(
+                                  color: Color(0xFF442165),
+                                  borderRadius: new BorderRadius.all(
+                                    const Radius.circular(20.0),
+                                  )),
+                            )),
+                        Center(
+                          child: Container(
+                            height: height,
+                            width: width,
+                            child: Hero(
+                              tag: 'backgroundImage' +
+                                  celebrityListItemArray[index -
+                                      (partnersCount + 2)]['partner_name'],
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(20.0),
+                                child: Image.asset(
+                                  'assets/celebrity_card/${celebrityListItemArray[index - (partnersCount + 2)]['partner_name'].toString().toLowerCase().replaceAll(' ', '_')}.jpg',
+                                  height: height / 4,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Hero(
+                            tag: 'backgroundImageGradient' +
+                                celebrityListItemArray[index -
+                                    (partnersCount + 2)]['partner_name'],
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.only(
+                                  bottomLeft: Radius.circular(20),
+                                  bottomRight: Radius.circular(20)),
+                              child: Container(
+                                height: height / 8,
+                                decoration: new BoxDecoration(
+                                  gradient: new LinearGradient(
+                                      colors: [
+                                        const Color(0xFF0d1337),
+                                        const Color(0xFF2e1636)
+                                            .withOpacity(0.0),
+                                      ],
+                                      begin: const FractionalOffset(0.0, 1.0),
+                                      end: const FractionalOffset(0.0, 0.0),
+                                      stops: [0.0, 1.0],
+                                      tileMode: TileMode.clamp),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                            top: 20,
+                            left: 20,
+                            width: _screenWidthAdjustment,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Container(
+                                  padding: const EdgeInsets.only(right: 5),
+                                  child: Hero(
+                                      tag: 'name' +
+                                          celebrityListItemArray[
+                                                  index - (partnersCount + 2)]
+                                              ['partner_name'],
+                                      child: Material(
+                                          color: Colors.transparent,
+                                          child: Text(
+                                            '${celebrityListItemArray[index - (partnersCount + 2)]['partner_name']}',
+                                            style: TextStyle(
+                                                color: AppColors.accentText,
+                                                fontSize: 22,
+                                                fontFamily: 'Barlow-Medium'),
+                                          ))),
+                                ),
+                                SizedBox(
+                                  height: 5,
+                                ),
+                                Hero(
+                                    tag: 'subtitle' +
+                                        celebrityListItemArray[
+                                                index - (partnersCount + 2)]
+                                            ['partner_name'],
+                                    child: Material(
+                                        color: Colors.transparent,
+                                        child: Text(
+                                          "Celebrity",
+                                          style: TextStyle(
+                                              color: AppColors.accentText,
+                                              fontSize: 16,
+                                              fontFamily: 'Barlow-Light'),
+                                        )))
+                              ],
+                            )),
+                        Container(),
+                        Positioned(
+                          top: 30,
+                          right: 20,
+                          height: height / 22,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                isClickedMenuCard = false;
+                              });
+                              _showShareDialogCeleb(context, index);
+                            },
+                            child: isClickedMenuCard
+                                ? Image(
+                                    height: height / 22,
+                                    image: AssetImage('assets/white_menu.png'),
+                                  )
+                                : Container(),
+                          ),
+                        ),
+                        Positioned(
+                          top: height / 2.2,
+                          left: width / 3.4,
+                          child: Hero(
+                            tag: 'score' +
+                                celebrityListItemArray[index -
+                                    (partnersCount + 2)]['partner_name'],
+                            child: Container(
+                              height: height / 10,
+                              decoration: BoxDecoration(
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color: Color(0xFF3F2063),
+                                        blurRadius: 5.0,
+                                        spreadRadius: 0.01),
+                                  ],
+                                  gradient: new LinearGradient(
+                                    colors: [
+                                      const Color(0xFF3F2063),
+                                      const Color(0xFF6E2A73),
+                                    ],
+                                    begin: const FractionalOffset(0.0, 0.0),
+                                    end: const FractionalOffset(0.5, 1.0),
+                                  ),
+                                  color: AppColors.secondaryBackground,
+                                  shape: BoxShape.circle),
+                              child: Padding(
+                                padding: const EdgeInsets.all(2.0),
+                                child: CircularPercentIndicator(
+                                  radius: height / 12,
+                                  animation: false,
+                                  lineWidth: 1.0,
+                                  center: new Text(
+                                    '${_getCelebrityScore(index - (partnersCount + 2))}%',
+                                    style: TextStyle(
+                                        color: AppColors.accentText,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                        fontFamily: 'Rubik-Medium'),
+                                  ),
+                                  percent: scoreText / 100,
+                                  backgroundColor: Colors.transparent,
+                                  progressColor: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: height / 1.75,
+                          left: width / 20,
+                          right: width / 20,
+                          child: Hero(
+                            tag: 'description' +
+                                celebrityListItemArray[index -
+                                    (partnersCount + 2)]['partner_name'],
+                            child: Center(
+                              child: Material(
+                                color: Colors.transparent,
+                                child: Text(
+                                  "${celebrityListItemArray[index - (partnersCount + 2)]['partner_score_description']}",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      fontFamily: 'Barlow-Regular',
+                                      decoration: TextDecoration.none,
+                                      fontSize: 16.0,
+                                      color: AppColors.accentText),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          alignment: Alignment.bottomCenter,
+                          child: Hero(
+                            tag: 'subtitles' +
+                                celebrityListItemArray[index -
+                                    (partnersCount + 2)]['partner_name'],
+                            child: Container(),
+                          ),
+                        ),
+                      ],
+                    )))));
+  }
+
+  void startTimer() {
+    const oneSec = const Duration(microseconds: 10);
+    _timer = new Timer.periodic(
+      oneSec,
+      (Timer timer) => setState(
+        () {
+          if (_start >= 1) {
+            timer.cancel();
+          } else {
+            _start = _start + 0.001;
+            controller = PageController(viewportFraction: _start);
+          }
+        },
+      ),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Left and Right margins 24 + 24 = 48.0 - Text Left and Right Padding 32 + 32 = 64
+    _screenWidthAdjustment = MediaQuery.of(context).size.width - 48.0 - 64.0;
+  }
+
+  _getPartnerAge(String bDay) {
+    var oldFormatter = new DateFormat('dd/MM/yyyy').parse(bDay);
+
+    DateTime birthday =
+        DateTime(oldFormatter.year, oldFormatter.month, oldFormatter.day);
+
+    DateTime today = DateTime.now(); //2020/1/24
+
+    AgeDuration age;
+    // Find out your age
+    age = Age.dateDifference(
+        fromDate: birthday, toDate: today, includeToDate: false);
+
+    year = age.years;
+    return age.years;
+  }
+
+  void prepareAnimations() {
+    expandController = AnimationController(
+        vsync: this, duration: Duration(milliseconds: 1200));
+
+    offset = Tween<Offset>(begin: Offset(0.0, 1.0), end: Offset.zero).animate(
+        CurvedAnimation(parent: expandController, curve: Curves.decelerate));
+
+    animation = Tween<double>(begin: 0, end: 30).animate(expandController)
+      ..addListener(() {
+        setState(() {});
+      });
+    sizeAnimation = Tween<double>(begin: 0, end: 1).animate(
+        CurvedAnimation(parent: expandController, curve: Curves.easeOutQuint))
+      ..addListener(() {
+        setState(() {});
+      });
+  }
+
+  var sharePartnerSun;
+
+  _getCardBackImagePart(int index) {
+    var resultJson = partnerListItemArray[index]["resultJson"];
+    var parsedJson = json.decode(resultJson);
+    cardBackString = parsedJson['data']['partner_data']['english_meaning'];
+
+    if (cardBackString == "Beta Arietis") {
+      cardBackImagePath = "assets/nakshastra_card/Ashvini-Horsehead.png";
+    } else if (cardBackString == "35 Arietis") {
+      cardBackImagePath = "assets/nakshastra_card/Bharani-Yoni.png";
+    } else if (cardBackString == "EtaTauri") {
+      cardBackImagePath = "assets/nakshastra_card/Krittika-Razor.png";
+    } else if (cardBackString == "Aldebaran") {
+      cardBackImagePath = "assets/nakshastra_card/Rohini-Chariot.png";
+    } else if (cardBackString == "Lambda Orionis") {
+      cardBackImagePath = "assets/nakshastra_card/Mrigashira-Deer.png";
+    } else if (cardBackString == "Alpha Orionis") {
+      cardBackImagePath = "assets/nakshastra_card/Ardra-Tear Drop.png";
+    } else if (cardBackString == "Beta Geminorum") {
+      cardBackImagePath = "assets/nakshastra_card/Punarvasu-Quiver.png";
+    } else if (cardBackString == "Delta Cancri") {
+      cardBackImagePath = "assets/nakshastra_card/Pushya-Udder.png";
+    } else if (cardBackString == "Alpha Hydroe") {
+      cardBackImagePath = "assets/nakshastra_card/Ashlesha-Serpent.png";
+    } else if (cardBackString == "Regulus") {
+      cardBackImagePath = "assets/nakshastra_card/Magha-honor.png";
+    } else if (cardBackString == "Delta Leonis") {
+      cardBackImagePath = "assets/nakshastra_card/Purva phalguni-Hammock.png";
+    } else if (cardBackString == "Beta Leonis") {
+      cardBackImagePath = "assets/nakshastra_card/Uttaraphalguni-Fig tree.png";
+    } else if (cardBackString == "Delta Corvi") {
+      cardBackImagePath = "assets/nakshastra_card/Hasta-Hand.png";
+    } else if (cardBackString == "Spica") {
+      cardBackImagePath = "assets/nakshastra_card/Chitra-Jewel.png";
+    } else if (cardBackString == "Arcturus") {
+      cardBackImagePath = "assets/nakshastra_card/Swati-Coral.png";
+    } else if (cardBackString == "Alpha Libroe") {
+      cardBackImagePath = "assets/nakshastra_card/Vishakha-Arch.png";
+    } else if (cardBackString == "Delta Scorpio") {
+      cardBackImagePath = "assets/nakshastra_card/Anuradha-Lotus.png";
+    } else if (cardBackString == "Antares") {
+      cardBackImagePath = "assets/nakshastra_card/Jyestha-Amulet.png";
+    } else if (cardBackString == "Lambda Scorpii") {
+      cardBackImagePath = "assets/nakshastra_card/Mula-Roots.png";
+    } else if (cardBackString == "Delta Sagittari") {
+      cardBackImagePath = "assets/nakshastra_card/Purvashada-Afan.png";
+    } else if (cardBackString == "Sigma Sagittari") {
+      cardBackImagePath = "assets/nakshastra_card/Uttarashada-Tusk.png";
+    } else if (cardBackString == "Alpha Aquiloe") {
+      cardBackImagePath = "assets/nakshastra_card/Shravana-An Ear.png";
+    } else if (cardBackString == "Beta Delphinium") {
+      cardBackImagePath = "assets/nakshastra_card/Dhanishta-Drum.png";
+    } else if (cardBackString == "Lambda Aquarius") {
+      cardBackImagePath = "assets/nakshastra_card/Shatabisha-1000stars.png";
+    } else if (cardBackString == "Alpha Pegasi") {
+      cardBackImagePath =
+          "assets/nakshastra_card/purvabhadrapada_funeral_co.png";
+    } else if (cardBackString == "Gama Pegasi") {
+      cardBackImagePath = "assets/nakshastra_card/Uttarabhadra-Water snake.png";
+    } else if (cardBackString == "Zeta Piscum") {
+      cardBackImagePath = "assets/nakshastra_card/Revati-fish.png";
+    } else {
+      cardBackImagePath = "";
+    }
+
+    return cardBackImagePath;
+  }
+
+  _getScore(int index) {
+    var resultJson = partnerListItemArray[index]["resultJson"];
+    var parsedJson = json.decode(resultJson);
+    match = parsedJson['data']['match'];
+    cardBackString = parsedJson['data']['partner_data']['ascendant_name'];
+
+    scoreText = match['score'];
+    level = match['level'];
+
+    return scoreText;
+  }
+
+  _getCelebrityScore(int index) {
+    var resultJson = celebrityListItemArray[index]["resultJson"];
+    var parsedJson = json.decode(resultJson);
+    match = parsedJson['data']['match'];
+    scoreText = match['score'];
+    level = match['level'];
+
+    return scoreText;
+  }
+
+  _showShareDialog(BuildContext context, int index) {
+    Dialog errorDialog = Dialog(
+      backgroundColor: const Color(0xFFF9F6FE),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0)), //this right here
+      child: Container(
+        height: 305,
+        width: width / 2,
+        child: Stack(
+          children: <Widget>[
+            Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Container(
+                  padding: EdgeInsets.only(top: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: <Widget>[
+                      Padding(
+                        padding: EdgeInsets.only(
+                          left: 25.0,
+                        ),
+                        child: Text(
+                          'What do you want\nto share?',
+                          textAlign: TextAlign.left,
+                          style: TextStyle(
+                            color: AppColors.primaryBackground,
+                            fontFamily: "Barlow-Medium",
+                            fontSize: 20,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                isClickedMenu = true;
+                                isClickedMenuCard = true;
+                              });
+
+                              Navigator.pop(context);
+                            },
+                            child: Image(
+                              height: height / 18,
+                              width: height / 18,
+                              image: AssetImage(
+                                'assets/close.png',
+                              ),
+                              fit: BoxFit.fill,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: width,
+                  child: GestureDetector(
+                    onTap: () async {
+                      analytics.logEvent(name: "share_partner_card");
+                      facebookAppEvents.logEvent(name: 'share_partner_card');
+
+                      Navigator.pop(context);
+
+                      Navigator.push(
+                          context,
+                          PageTransition(
+                            type: PageTransitionType.fade,
+                            child: ShareCard(
+                              name:
+                                  '${partnerListItemArray[index - 2]['partner_name']}',
+                              age:
+                                  "Age ${_getPartnerAge("${partnerListItemArray[index - 2]['partner_birth_date']}")}",
+                              count: _getScore(index - 2),
+                              description:
+                                  "${partnerListItemArray[index - 2]['partner_score_description']}",
+                              image: '${_getCardBackImagePart(index - 2)}',
+                              color: Color(int.parse(
+                                  partnerListItemArray[index - 2]
+                                          ['partner_color']
+                                      .toString()
+                                      .replaceAll("Color(", "")
+                                      .replaceAll(")", ""))),
+                            ),
+                          ));
+                      setState(() {
+                        isClickedMenu = true;
+                        isClickedMenuCard = true;
+                      });
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                          left: 25.0, top: 10, bottom: 10),
+                      child: Text(
+                        'Share Partner Card',
+                        textAlign: TextAlign.left,
+                        style: TextStyle(
+                          color: AppColors.primaryText,
+                          fontFamily: "Barlow-Regular",
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: width,
+                  child: GestureDetector(
+                    onTap: () async {
+                      analytics.logEvent(name: "share_love_digits_app");
+                      facebookAppEvents.logEvent(name: 'share_love_digits_app');
+                      Navigator.pop(context);
+                      final ByteData bytes =
+                          await rootBundle.load('assets/love_share_image.png');
+                      await Share.file(
+                        'Love digit',
+                        'love_digit.png',
+                        bytes.buffer.asUint8List(),
+                        'image/png',
+                        text:
+                            'I just got my Love Digits personality and compatibility score. What’s yours? Download the app to find out!\n\nPlay store\nhttps://play.google.com/store/apps/details?id=com.wad.lovedigits',
+                      );
+                      setState(() {
+                        isClickedMenu = true;
+                        isClickedMenuCard = true;
+                      });
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                          left: 25.0, top: 10, bottom: 10),
+                      child: Text(
+                        'Love Digits App',
+                        textAlign: TextAlign.left,
+                        style: TextStyle(
+                          color: AppColors.primaryText,
+                          fontFamily: "Barlow-Regular",
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: width,
+                  child: GestureDetector(
+                    onTap: () {
+                      analytics.logEvent(name: "share_astrology_profile");
+                      facebookAppEvents.logEvent(
+                          name: 'share_astrology_profile');
+
+                      Navigator.pop(context);
+                      setState(() {
+                        isClickedMenu = true;
+                        isClickedMenuCard = true;
+                      });
+
+                      var resultJson =
+                          partnerListItemArray[index - 2]["resultJson"];
+                      var parsedJson = json.decode(resultJson);
+                      var responseJsonRec =
+                          prefs.getString('response_recommendation') ?? "";
+                      var parsedJsonRec = json.decode(responseJsonRec);
+                      yourSunSignRec =
+                          parsedJsonRec['data']['sun_sign']['your_sun_sign'];
+                      var yourSun = yourSunSignRec.split("(");
+                      yourSunSignFirstOld = yourSun[0];
+                      yourSunSignFirst =
+                          "${yourSunSignFirstOld[0].toString().toUpperCase()}${yourSunSignFirstOld.toString().substring(1).toLowerCase()}";
+                      yourSunSignSec = yourSun[1];
+
+                      Share.text(
+                          'Love digits',
+                          'My Love Digits Astrology Profile\n\nNakshatra - ${parsedJson['data']['my_data']['nakshatra_title']}\n${parsedJson['data']['my_data']['nakshathra_description']}\n\nAscendant - '
+                              '${parsedJson['data']['my_data']['ascendant_name']}\n${parsedJson['data']['my_data']['ascendant_description']}\n\n'
+                              'Sun sign - $yourSunSignFirst($yourSunSignSec\n${parsedJson['data']['my_data']['sunPosition']['description']}\n\nBirth Number - '
+                              '${parsedJson['data']['my_data']['birth_number']}\n${parsedJson['data']['my_data']['birth_number_description']}\n\n'
+                              'Life Path - ${parsedJson['data']['my_data']['life_path']}\n${parsedJson['data']['my_data']['life_path_description']}',
+                          'text/plain');
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.only(left: 25.0, top: 10, bottom: 10),
+                      child: Text(
+                        'Your Astrology Profile',
+                        textAlign: TextAlign.left,
+                        style: TextStyle(
+                          color: AppColors.primaryText,
+                          fontFamily: "Barlow-Regular",
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: width,
+                  child: GestureDetector(
+                    onTap: () {
+                      analytics.logEvent(name: "share_match_compatibility");
+                      facebookAppEvents.logEvent(
+                          name: 'share_match_compatibility');
+
+                      Navigator.pop(context);
+                      setState(() {
+                        isClickedMenu = true;
+                        isClickedMenuCard = true;
+                      });
+
+                      var resultJson =
+                          partnerListItemArray[index - 2]["resultJson"];
+                      var parsedJson = json.decode(resultJson);
+                      Share.text(
+                          'Love digits',
+                          'My Love Digits Compatibility with ${partnerListItemArray[index - 2]['partner_name']} is\n\n${_getScore(index - 2)}%\n\n'
+                              'Nakshatra\n${parsedJson['data']['match_comparison']['nakshathra']['description']}\n\n'
+                              'Ascendant\n${parsedJson['data']['match_comparison']['ascendant_point']['description']}\n\n'
+                              'Sun\n${parsedJson['data']['match_comparison']['sub_sign_point']['description']}\n\n'
+                              'Venus\n${parsedJson['data']['match_comparison']['venus_point']['description']}\n\n'
+                              'Birth Number\n${parsedJson['data']['match_comparison']['birth_number']['description']}\n\n'
+                              'Life Path\n${parsedJson['data']['match_comparison']['life_path']['description']}',
+                          'text/plain');
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.only(left: 25.0, top: 10, bottom: 10),
+                      child: Text(
+                        'This Match Compatibility',
+                        textAlign: TextAlign.left,
+                        style: TextStyle(
+                          color: AppColors.primaryText,
+                          fontFamily: "Barlow-Regular",
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: width,
+                  child: GestureDetector(
+                    onTap: () {
+                      analytics.logEvent(name: "share_partner_personality");
+                      facebookAppEvents.logEvent(
+                          name: 'share_partner_personality');
+
+                      Navigator.pop(context);
+                      var resultJson =
+                          partnerListItemArray[index - 2]["resultJson"];
+                      var parsedJson = json.decode(resultJson);
+
+                      setState(() {
+                        isClickedMenu = true;
+                        isClickedMenuCard = true;
+                      });
+                      Share.text(
+                          'Love digits',
+                          'Personality traits for ${partnerListItemArray[index - 2]['partner_name']}\n\n'
+                              'Nakshatra - ${parsedJson['data']['partner_data']['nakshatra_title']}\n${parsedJson['data']['partner_data']['nakshathra_description']}\n\n'
+                              'Ascendant - ${parsedJson['data']['partner_data']['ascendant_name']}\n${parsedJson['data']['partner_data']['ascendant_description']}\n\n'
+                              'Sun sign - ${parsedJson['data']['partner_data']['sunPosition']['housesAndZodiacs'].toString().toLowerCase()}\n${parsedJson['data']['partner_data']['sunPosition']['description']}\n\n'
+                              'Life Path - ${parsedJson['data']['partner_data']['life_path']}\n${parsedJson['data']['partner_data']['life_path_description']}\n\n'
+                              'Birth Number - ${parsedJson['data']['partner_data']['birth_number']}\n${parsedJson['data']['partner_data']['birth_number_description']}',
+                          'text/plain');
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.only(left: 25.0, top: 10, bottom: 10),
+                      child: Text(
+                        'Partner Personality',
+                        textAlign: TextAlign.left,
+                        style: TextStyle(
+                          color: AppColors.primaryText,
+                          fontFamily: "Barlow-Regular",
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => errorDialog,
+      barrierDismissible: false,
+    );
+  }
+
+  _showShareDialogCeleb(BuildContext context, int index) {
+    Dialog errorDialog = Dialog(
+      backgroundColor: const Color(0xFFF9F6FE),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0)), //this right here
+      child: Container(
+        height: 305,
+        width: width / 2,
+        child: Stack(
+          children: <Widget>[
+            Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Container(
+                  padding: EdgeInsets.only(top: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: <Widget>[
+                      Padding(
+                        padding: EdgeInsets.only(
+                          left: 25.0,
+                        ),
+                        child: Text(
+                          'What do you want\nto share?',
+                          textAlign: TextAlign.left,
+                          style: TextStyle(
+                            color: AppColors.primaryBackground,
+                            fontFamily: "Barlow-Medium",
+                            fontSize: 20,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                isClickedMenu = true;
+                                isClickedMenuCard = true;
+                              });
+
+                              Navigator.pop(context);
+                            },
+                            child: Image(
+                              height: height / 18,
+                              width: height / 18,
+                              image: AssetImage(
+                                'assets/close.png',
+                              ),
+                              fit: BoxFit.fill,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: width,
+                  child: GestureDetector(
+                    onTap: () async {
+                      analytics.logEvent(name: "share_celebrity_card");
+                      facebookAppEvents.logEvent(name: 'share_celebrity_card');
+
+                      Navigator.pop(context);
+
+                      Navigator.push(
+                          context,
+                          PageTransition(
+                            type: PageTransitionType.fade,
+                            child: ShareCard(
+                                name:
+                                    '${celebrityListItemArray[index - (partnersCount + 2)]['partner_name']}',
+                                age: "Celebrity",
+                                count: _getCelebrityScore(
+                                    index - (partnersCount + 2)),
+                                description:
+                                    "${celebrityListItemArray[index - (partnersCount + 2)]['partner_score_description']}",
+                                image:
+                                    'assets/celebrity_card/${celebrityListItemArray[index - (partnersCount + 2)]['partner_name'].toString().toLowerCase().replaceAll(' ', '_')}.jpg'),
+                          ));
+                      setState(() {
+                        isClickedMenu = true;
+                        isClickedMenuCard = true;
+                      });
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                          left: 25.0, top: 10, bottom: 10),
+                      child: Text(
+                        'Share Celebrity Card',
+                        textAlign: TextAlign.left,
+                        style: TextStyle(
+                          color: AppColors.primaryText,
+                          fontFamily: "Barlow-Regular",
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: width,
+                  padding: EdgeInsets.only(left: 25.0, top: 10, bottom: 10),
+                  child: GestureDetector(
+                    onTap: () async {
+                      analytics.logEvent(name: "share_love_digits_app");
+                      facebookAppEvents.logEvent(name: 'share_love_digits_app');
+
+                      Navigator.pop(context);
+                      final ByteData bytes =
+                          await rootBundle.load('assets/love_share_image.png');
+                      await Share.file(
+                        'Love digit',
+                        'love_digit.png',
+                        bytes.buffer.asUint8List(),
+                        'image/png',
+                        text:
+                            'I just got my Love Digits personality and compatibility score. What’s yours? Download the app to find out!\n\nPlay store\nhttps://play.google.com/store/apps/details?id=com.wad.lovedigits',
+                      );
+
+                      setState(() {
+                        isClickedMenu = true;
+                        isClickedMenuCard = true;
+                      });
+                    },
+                    child: Text(
+                      'Love Digits App',
+                      textAlign: TextAlign.left,
+                      style: TextStyle(
+                        color: AppColors.primaryText,
+                        fontFamily: "Barlow-Regular",
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: width,
+                  padding: EdgeInsets.only(left: 25.0, top: 10, bottom: 10),
+                  child: GestureDetector(
+                    onTap: () {
+                      analytics.logEvent(name: "share_astrology_profile");
+                      facebookAppEvents.logEvent(
+                          name: 'share_astrology_profile');
+
+                      Navigator.pop(context);
+                      setState(() {
+                        isClickedMenu = true;
+                        isClickedMenuCard = true;
+                      });
+                      var resultJson =
+                          celebrityListItemArray[index - (partnersCount + 2)]
+                              ["resultJson"];
+                      var parsedJson = json.decode(resultJson);
+                      var responseJsonRec =
+                          prefs.getString('response_recommendation') ?? "";
+                      var parsedJsonRec = json.decode(responseJsonRec);
+                      yourSunSignRec =
+                          parsedJsonRec['data']['sun_sign']['your_sun_sign'];
+                      var yourSun = yourSunSignRec.split("(");
+                      yourSunSignFirstOld = yourSun[0];
+                      yourSunSignFirst =
+                          "${yourSunSignFirstOld[0].toString().toUpperCase()}${yourSunSignFirstOld.toString().substring(1).toLowerCase()}";
+                      yourSunSignSec = yourSun[1];
+                      Share.text(
+                          'Love digits',
+                          'My Love Digits Astrology Profile\n\nNakshatra - ${parsedJson['data']['my_data']['nakshatra_title']}\n${parsedJson['data']['my_data']['nakshathra_description']}\n\nAscendant - '
+                              '${parsedJson['data']['my_data']['ascendant_name']}\n${parsedJson['data']['my_data']['ascendant_description']}\n\n'
+                              'Sun sign - $yourSunSignFirst($yourSunSignSec\n${parsedJson['data']['my_data']['sunPosition']['description']}\n\nBirth Number - '
+                              '${parsedJson['data']['my_data']['birth_number']}\n${parsedJson['data']['my_data']['birth_number_description']}\n\n'
+                              'Life Path - ${parsedJson['data']['my_data']['life_path']}\n${parsedJson['data']['my_data']['life_path_description']}',
+                          'text/plain');
+                    },
+                    child: Text(
+                      'Your Astrology Profile',
+                      textAlign: TextAlign.left,
+                      style: TextStyle(
+                        color: AppColors.primaryText,
+                        fontFamily: "Barlow-Regular",
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: width,
+                  padding: EdgeInsets.only(left: 25.0, top: 10, bottom: 10),
+                  child: GestureDetector(
+                    onTap: () {
+                      analytics.logEvent(name: "share_match_compatibility");
+                      facebookAppEvents.logEvent(
+                          name: 'share_match_compatibility');
+
+                      Navigator.pop(context);
+                      setState(() {
+                        isClickedMenu = true;
+                        isClickedMenuCard = true;
+                      });
+
+                      var resultJson =
+                          celebrityListItemArray[index - (partnersCount + 2)]
+                              ["resultJson"];
+                      var parsedJson = json.decode(resultJson);
+                      Share.text(
+                          'Love digits',
+                          'My Love Digits Compatibility with ${celebrityListItemArray[index - (partnersCount + 2)]['partner_name']} is\n\n${_getCelebrityScore(index - (partnersCount + 2))}%\n\n'
+                              'Nakshatra\n${parsedJson['data']['match_comparison']['nakshathra']['description']}\n\n'
+                              'Ascendant\n${parsedJson['data']['match_comparison']['ascendant_point']['description']}\n\n'
+                              'Sun\n${parsedJson['data']['match_comparison']['sub_sign_point']['description']}\n\n'
+                              'Venus\n${parsedJson['data']['match_comparison']['venus_point']['description']}\n\n'
+                              'Birth Number\n${parsedJson['data']['match_comparison']['birth_number']['description']}\n\n'
+                              'Life Path\n${parsedJson['data']['match_comparison']['life_path']['description']}',
+                          'text/plain');
+                    },
+                    child: Text(
+                      'This Match Compatibility',
+                      textAlign: TextAlign.left,
+                      style: TextStyle(
+                        color: AppColors.primaryText,
+                        fontFamily: "Barlow-Regular",
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: width,
+                  padding: EdgeInsets.only(left: 25.0, top: 10, bottom: 10),
+                  child: GestureDetector(
+                    onTap: () {
+                      analytics.logEvent(name: "share_partner_personality");
+                      facebookAppEvents.logEvent(
+                          name: 'share_partner_personality');
+
+                      Navigator.pop(context);
+                      var resultJson =
+                          celebrityListItemArray[index - (partnersCount + 2)]
+                              ["resultJson"];
+                      var parsedJson = json.decode(resultJson);
+                      setState(() {
+                        isClickedMenu = true;
+                        isClickedMenuCard = true;
+                      });
+                      Share.text(
+                          'Love digits',
+                          'Personality traits for ${celebrityListItemArray[index - (partnersCount + 2)]['partner_name']}\n\n'
+                              'Nakshatra - ${parsedJson['data']['partner_data']['nakshatra_title']}\n${parsedJson['data']['partner_data']['nakshathra_description']}\n\n'
+                              'Ascendant - ${parsedJson['data']['partner_data']['ascendant_name']}\n${parsedJson['data']['partner_data']['ascendant_description']}\n\n'
+                              'Sun sign - ${parsedJson['data']['partner_data']['sunPosition']['housesAndZodiacs'].toString().toLowerCase()}\n${parsedJson['data']['partner_data']['sunPosition']['description']}\n\n'
+                              'Life Path - ${parsedJson['data']['partner_data']['life_path']}\n${parsedJson['data']['partner_data']['life_path_description']}\n\n'
+                              'Birth Number - ${parsedJson['data']['partner_data']['birth_number']}\n${parsedJson['data']['partner_data']['birth_number_description']}',
+                          'text/plain');
+                    },
+                    child: Text(
+                      'Partner Personality',
+                      textAlign: TextAlign.left,
+                      style: TextStyle(
+                        color: AppColors.primaryText,
+                        fontFamily: "Barlow-Regular",
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => errorDialog,
+      barrierDismissible: false,
+    );
+  }
+
+  _buildTagPage() {
+    return GestureDetector(
+      child: Container(
+          color: Colors.white,
+          padding: EdgeInsets.only(left: 20, top: height / 4),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Container(
+                width: width / 5,
+                height: width / 5,
+                decoration: BoxDecoration(
+                  color: Color(0xFFF5F2FE),
+                  shape: BoxShape.circle,
+                  image: DecorationImage(
+                    fit: BoxFit.cover,
+                    image: _image == null
+                        ? AssetImage(userNaksImage)
+                        : FileImage(_image),
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: height / 30,
+              ),
+              Text(
+                'Welcome',
+                style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.none,
+                    color: AppColors.primaryBackground),
+              ),
+              Text(
+                '${my_name}',
+                style: TextStyle(
+                  fontWeight: FontWeight.w400,
+                  fontSize: 25,
+                  color: AppColors.primaryBackground,
+                  letterSpacing: 0.01,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+              SizedBox(
+                height: height / 14,
+              ),
+              Text(
+                '$my_birth_date \n$my_birth_time \n$my_location_name',
+                style: TextStyle(
+                  fontFamily: "Barlow-Regular",
+                  fontSize: 20,
+                  height: 1.6,
+                  color: AppColors.primaryBackground,
+                  letterSpacing: 0.01,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+            ],
+          )),
+      onPanUpdate: (details) {
+        if (!controller.position.isScrollingNotifier.value) {
+          if (details.delta.dy > 0) {
+          } else if (details.delta.dy < 0) {
+            prefs.setInt('home_index', 0);
+            Navigator.push(
+                context,
+                PageTransition(
+                    type: PageTransitionType.fade,
+                    duration: Duration(milliseconds: 700),
+                    child: Profile(screenHeight: height)));
+          }
+        }
+      },
+      onTap: () {
+        prefs.setInt('home_index', 0);
+
+        Navigator.push(
+            context,
+            PageTransition(
+                type: PageTransitionType.fade,
+                duration: Duration(milliseconds: 700),
+                child: Profile(screenHeight: height)));
+      },
+    );
+  }
+
+  _buildAddPartner(int index, bool active) {
+    if (currentPage == index) {
+      active = true;
+    }
+
+    final double blur = active ? 10 : 0;
+    final double offSet = active ? 10 : 0;
+    final double top = height / 6;
+
+    return GestureDetector(
+      onPanUpdate: (details) {
+        if (!controller.position.isScrollingNotifier.value) {
+          if (details.delta.dy > 0) {
+          } else if (details.delta.dy < 0) {
+            prefs.setInt('home_index', currentPage);
+            Navigator.push(
+                context,
+                PageTransition(
+                  type: PageTransitionType.fade,
+                  duration: Duration(milliseconds: 700),
+                  child: AddPartner(),
+                ));
+          }
+        }
+      },
+      onTap: () {
+        analytics.logEvent(name: "add_partner");
+        facebookAppEvents.logEvent(name: 'add_partner');
+
+        prefs.setInt('home_index', currentPage);
+        Navigator.push(
+            context,
+            PageTransition(
+              type: PageTransitionType.fade,
+              duration: Duration(milliseconds: 700),
+              child: AddPartner(),
+            ));
+      },
+      child: AnimatedContainer(
+        duration: Duration(milliseconds: 1000),
+        curve: Curves.easeOutQuint,
+        width: width,
+        margin: EdgeInsets.only(
+            top: top, bottom: height / 5.65, right: 10, left: 10),
+        decoration: BoxDecoration(
+          color: AppColors.primaryBackground,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black12,
+                blurRadius: blur,
+                offset: Offset(offSet, offSet))
+          ],
+        ),
+        child: Container(
+            height: height,
+            width: width,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Container(
+                    color: Colors.transparent,
+                    child: Icon(Icons.add, color: Colors.white, size: 50),
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Text(
+                    "Add Your Partner",
+                    style: TextStyle(
+                      decoration: TextDecoration.none,
+                      color: Colors.white,
+                      fontSize: 18,
+                    ),
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Text(
+                    "Check compatibility with a partner",
+                    style: TextStyle(
+                      decoration: TextDecoration.none,
+                      color: Colors.white30,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            )),
+      ),
+    );
+  }
+
+  _buildAddCelebrityPage() {
+    return !isCelebClick
+        ? GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () {
+              analytics.logEvent(name: 'add_celebrity');
+              facebookAppEvents.logEvent(name: 'add_celebrity');
+
+              scoreNew = 00;
+              if (!isCelebClick) {
+                prefs.setInt('home_index', currentPage);
+
+                Timer(const Duration(milliseconds: 2000), () {
+                  getCelebrityJSON();
+                });
+                setState(() {
+                  isCelebClick = true;
+                });
+              }
+            },
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: new BoxDecoration(
+                      gradient: new LinearGradient(
+                        colors: [
+                          const Color(0xFF3F2063),
+                          const Color(0xFF6E2A73),
+                        ],
+                        begin: const FractionalOffset(0.0, 0.0),
+                        end: const FractionalOffset(1.0, 1.0),
+                      ),
+                      borderRadius: BorderRadius.all(
+                        Radius.circular(100),
+                      ),
+                    ),
+                    child: Icon(Icons.add, color: Colors.white, size: 50),
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Text(
+                    "Add Celebrity",
+                    style: TextStyle(
+                      decoration: TextDecoration.none,
+                      color: AppColors.primaryBackground,
+                      fontSize: 18,
+                    ),
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Text(
+                    "Check compatibility with a celebrity",
+                    style: TextStyle(
+                      decoration: TextDecoration.none,
+                      color: AppColors.secondaryBackground,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ))
+        : Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                SizedBox(
+                  height: 10,
+                ),
+                Container(
+                  width: width,
+                  height: width,
+                  child: Container(
+                      width: 60,
+                      height: 60,
+                      child: Stack(
+                        children: <Widget>[
+                          Container(
+                            child: SpinKitRipple(
+                              color: AppColors.secondaryBackground,
+                              size: height / 2.5,
+                            ),
+                          ),
+                          Center(
+                            child: Container(
+                              height: 60,
+                              width: 60,
+                              child: Container(
+                                child: SpinKitDoubleBounce(
+                                  color: AppColors.secondaryBackground,
+                                  size: height / 2.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )),
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+                Text(
+                  "Adding a Celebrity",
+                  style: TextStyle(
+                    decoration: TextDecoration.none,
+                    color: AppColors.primaryBackground,
+                    fontSize: 18,
+                  ),
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+                Text(
+                  "Calculating compatibility with a celebrity",
+                  style: TextStyle(
+                    decoration: TextDecoration.none,
+                    color: AppColors.secondaryBackground,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          );
+  }
+
+  getIndex() async {
+    prefs = await SharedPreferences.getInstance();
+    homeIndex = prefs.getInt('home_index') ?? "";
+    int checkPartner = widget.partnerCount,
+        checkCelebrity = widget.celebrityCount;
+
+    if (homeIndex == "") {
+      homeIndex = 0;
+    }
+
+    if (homeIndex != 0) {
+      if (homeIndex < checkPartner + 2) {
+        isPartnerExpand = false;
+        controller.jumpToPage(homeIndex);
+
+        type = 'partner';
+        Timer(const Duration(milliseconds: 1000), () {
+          setState(() {
+            Navigator.of(context).push(
+              PageRouteBuilder(
+                fullscreenDialog: true,
+                transitionDuration: Duration(milliseconds: 1000),
+                pageBuilder: (BuildContext context, Animation<double> animation,
+                    Animation<double> secondaryAnimation) {
+                  return Details(
+                    dataObject: partnerListItemArray[homeIndex - 2],
+                    score: _getScore(homeIndex - 2),
+                    description: partnerListItemArray[homeIndex - 2]
+                        ['partner_score_description'],
+                    type: 'partner',
+                    image: _getCardBackImagePart(homeIndex - 2),
+                    age:
+                        "Age ${_getPartnerAge("${partnerListItemArray[homeIndex - 2]['partner_birth_date']}")}",
+                    color: Color(int.parse(partnerListItemArray[homeIndex - 2]
+                            ['partner_color']
+                        .toString()
+                        .replaceAll("Color(", "")
+                        .replaceAll(")", ""))),
+                    screenHeight: height,
+                  );
+                },
+                transitionsBuilder: (BuildContext context,
+                    Animation<double> animation,
+                    Animation<double> secondaryAnimation,
+                    Widget child) {
+                  return FadeTransition(
+                    opacity: animation,
+                    // CurvedAnimation(parent: animation, curve: Curves.elasticInOut),
+                    child: child,
+                  );
+                },
+              ),
+            );
+          });
+        });
+      } else if (homeIndex >= checkPartner + 2) {
+        isPartnerExpand = false;
+        controller.jumpToPage(homeIndex);
+        type = 'celebrity';
+
+        Timer(const Duration(milliseconds: 1000), () {
+          setState(() {
+            Navigator.of(context).push(
+              PageRouteBuilder(
+                fullscreenDialog: true,
+                transitionDuration: Duration(milliseconds: 1000),
+                pageBuilder: (BuildContext context, Animation<double> animation,
+                    Animation<double> secondaryAnimation) {
+                  return Details(
+                    dataObject:
+                        celebrityListItemArray[homeIndex - (partnersCount + 2)],
+                    score: _getCelebrityScore(homeIndex - (partnersCount + 2)),
+                    description:
+                        celebrityListItemArray[homeIndex - (partnersCount + 2)]
+                            ['partner_score_description'],
+                    type: 'celebrity',
+                    image:
+                        "assets/celebrity_card/${celebrityListItemArray[homeIndex - (partnersCount + 2)]['partner_name'].toString().toLowerCase().replaceAll(' ', '_')}.jpg",
+                    age: "Celebrity",
+                    screenHeight: height,
+                  );
+                },
+                transitionsBuilder: (BuildContext context,
+                    Animation<double> animation,
+                    Animation<double> secondaryAnimation,
+                    Widget child) {
+                  return FadeTransition(
+                    opacity: animation,
+                    // CurvedAnimation(parent: animation, curve: Curves.elasticInOut),
+                    child: child,
+                  );
+                },
+              ),
+            );
+          });
+        });
+      }
+    } else {
+      controller.animateToPage(homeIndex,
+          duration: Duration(milliseconds: 500), curve: Curves.easeOutQuint);
+    }
+  }
+
+  getSignUpValues() async {
+    prefs = await SharedPreferences.getInstance();
+    partnerListJson = prefs.getString('partnerListJson') ?? "";
+
+    if (partnerListJson != "") {
+      partnerListItemArray = json.decode(partnerListJson);
+      partnersCount = partnerListItemArray.length;
+    } else {}
+
+    celebrityListJson = prefs.getString('celebrityListJson') ?? "";
+
+    if (celebrityListJson != "") {
+      celebrityListItemArray = json.decode(celebrityListJson);
+      celebrityCount = celebrityListItemArray.length;
+    } else {}
+
+    my_name = prefs.getString('my_name') ?? "";
+    my_birth_country_code = prefs.getString('my_birth_country_code') ?? "";
+
+    my_birth_date = prefs.getString('my_birth_date') ?? "";
+    my_birth_time = prefs.getString('my_birth_time') ?? "";
+    my_birth_latitude = prefs.getString('my_birth_latitude') ?? "";
+    my_birth_longitude = prefs.getString('my_birth_longitude') ?? "";
+    my_location_name = prefs.getString('my_location_name_profile') ?? "";
+    my_gender = prefs.getString('my_gender') ?? "";
+    my_image = prefs.getString('image') ?? "";
+
+    if (my_birth_time.contains("PM")) {
+      my_birth_time = my_birth_time.replaceAll('PM', ' PM');
+    } else if (my_birth_time.contains("AM")) {
+      my_birth_time = my_birth_time.replaceAll('AM', ' AM');
+    }
+
+    var oldFormatter = new DateFormat('dd/MM/yyyy').parse(my_birth_date);
+
+    var formatter = new DateFormat('d MMM yyyy');
+    my_birth_date = formatter.format(oldFormatter);
+    if (my_image != "") {
+      file = File(my_image);
+    } else {
+      file = null;
+    }
+
+    var object = prefs.getString('response') ?? "";
+
+    var parsedJson = json.decode(object);
+    nakshatraString = parsedJson['data']['my_data']['english_meaning'];
+
+    //    Nakshatra data
+    if (nakshatraString == "Beta Arietis") {
+      userNaksImage = "assets/nakshastra_card/Ashvini-Horsehead.png";
+    } else if (nakshatraString == "35 Arietis") {
+      userNaksImage = "assets/nakshastra_card/Bharani-Yoni.png";
+    } else if (cardBackString == "EtaTauri") {
+      userNaksImage = "assets/nakshastra_card/Krittika-Razor.png";
+    } else if (nakshatraString == "Aldebaran") {
+      userNaksImage = "assets/nakshastra_card/Rohini-Chariot.png";
+    } else if (nakshatraString == "Lambda Orionis") {
+      userNaksImage = "assets/nakshastra_card/Mrigashira-Deer.png";
+    } else if (nakshatraString == "Alpha Orionis") {
+      userNaksImage = "assets/nakshastra_card/Ardra-Tear Drop.png";
+    } else if (nakshatraString == "Beta Geminorum") {
+      userNaksImage = "assets/nakshastra_card/Punarvasu-Quiver.png";
+    } else if (nakshatraString == "Delta Cancri") {
+      userNaksImage = "assets/nakshastra_card/Pushya-Udder.png";
+    } else if (nakshatraString == "Alpha Hydroe") {
+      userNaksImage = "assets/nakshastra_card/Ashlesha-Serpent.png";
+    } else if (nakshatraString == "Regulus") {
+      userNaksImage = "assets/nakshastra_card/Magha-honor.png";
+    } else if (nakshatraString == "Delta Leonis") {
+      userNaksImage = "assets/nakshastra_card/Purva phalguni-Hammock.png";
+    } else if (nakshatraString == "Beta Leonis") {
+      userNaksImage = "assets/nakshastra_card/Uttaraphalguni-Fig tree.png";
+    } else if (nakshatraString == "Delta Corvi") {
+      userNaksImage = "assets/nakshastra_card/Hasta-Hand.png";
+    } else if (nakshatraString == "Spica") {
+      userNaksImage = "assets/nakshastra_card/Chitra-Jewel.png";
+    } else if (nakshatraString == "Arcturus") {
+      userNaksImage = "assets/nakshastra_card/Swati-Coral.png";
+    } else if (nakshatraString == "Alpha Libroe") {
+      userNaksImage = "assets/nakshastra_card/Vishakha-Arch.png";
+    } else if (nakshatraString == "Delta Scorpio") {
+      userNaksImage = "assets/nakshastra_card/Anuradha-Lotus.png";
+    } else if (nakshatraString == "Antares") {
+      userNaksImage = "assets/nakshastra_card/Jyestha-Amulet.png";
+    } else if (nakshatraString == "Lambda Scorpii") {
+      userNaksImage = "assets/nakshastra_card/Mula-Roots.png";
+    } else if (nakshatraString == "Delta Sagittari") {
+      userNaksImage = "assets/nakshastra_card/Purvashada-Afan.png";
+    } else if (nakshatraString == "Sigma Sagittari") {
+      userNaksImage = "assets/nakshastra_card/Uttarashada-Tusk.png";
+    } else if (nakshatraString == "Alpha Aquiloe") {
+      userNaksImage = "assets/nakshastra_card/Shravana-An Ear.png";
+    } else if (nakshatraString == "Beta Delphinium") {
+      userNaksImage = "assets/nakshastra_card/Dhanishta-Drum.png";
+    } else if (nakshatraString == "Lambda Aquarius") {
+      userNaksImage = "assets/nakshastra_card/Shatabisha-1000stars.png";
+    } else if (nakshatraString == "Alpha Pegasi") {
+      userNaksImage = "assets/nakshastra_card/purvabhadrapada_funeral_co.png";
+    } else if (nakshatraString == "Gama Pegasi") {
+      userNaksImage = "assets/nakshastra_card/Uttarabhadra-Water snake.png";
+    } else if (nakshatraString == "Zeta Piscum") {
+      userNaksImage = "assets/nakshastra_card/Revati-fish.png";
+    } else {
+      userNaksImage = "";
+    }
+
+    setState(() {
+      _image = file;
+    });
+
+    for (int i = 0; i < celebrityListItemArray.length; i++) {}
+  }
+
+  getProfilePic() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    my_image = prefs.getString('image_partner') ?? "";
+
+    if (my_image != "") {
+      file = File(my_image);
+    } else {
+      file = null;
+    }
+
+    setState(() {
+      _image = file;
+    });
+  }
+
+  showAlertNak(BuildContext context, String title, String englishName,
+      String description) {
+    var newTitle = title.split("-");
+
+    Dialog errorDialog = Dialog(
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0)), //this right here
+      child: Container(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            Padding(
+              padding: EdgeInsets.all(15.0),
+              child: Text(
+                "${newTitle[0]}\n(in English) : $englishName",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontFamily: "MerriweatherSans-Regular",
+                    fontSize: 20.0,
+                    color: AppColors.primaryBackground),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(15.0),
+              child: Text(
+                description,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.primaryBackground,
+                  fontFamily: "MerriweatherSans-Regular",
+                  fontSize: 16.0,
+                ),
+              ),
+            ),
+            FlatButton(
+              color: AppColors.secondaryBackground,
+              textColor: AppColors.accentText,
+              child: Text("OK"),
+              onPressed: () {
+                Navigator.of(context, rootNavigator: true).pop('dialog');
+              },
+            ),
+            SizedBox(
+              height: 20,
+            )
+          ],
+        ),
+      ),
+    );
+    showDialog(
+        context: context, builder: (BuildContext context) => errorDialog);
+  }
+
+  showAlertAsc(BuildContext context, String title, String description) {
+    Dialog errorDialog = Dialog(
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0)), //this right here
+      child: Container(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            Padding(
+              padding: EdgeInsets.all(15.0),
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontFamily: "MerriweatherSans-Regular",
+                    fontSize: 20.0,
+                    color: AppColors.primaryBackground),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(15.0),
+              child: Text(
+                description,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.primaryBackground,
+                  fontFamily: "MerriweatherSans-Regular",
+                  fontSize: 16.0,
+                ),
+              ),
+            ),
+            FlatButton(
+              color: AppColors.secondaryBackground,
+              textColor: AppColors.accentText,
+              child: Text("OK"),
+              onPressed: () {
+                Navigator.of(context, rootNavigator: true).pop('dialog');
+              },
+            ),
+            SizedBox(
+              height: 20,
+            )
+          ],
+        ),
+      ),
+    );
+    showDialog(
+        context: context, builder: (BuildContext context) => errorDialog);
+  }
+
+  showDescriptionAlert(BuildContext context, String title, String description) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(20.0))),
+          title: Center(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontFamily: 'Barlow-Bold',
+              ),
+            ),
+          ),
+          content: Text(
+            description,
+            textAlign: TextAlign.center,
+          ),
+          actions: <Widget>[
+            FlatButton(
+              child: Text(
+                'Ok',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 20.0, color: AppColors.primaryBackground),
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  var nakshastraDescription;
+  var ascendantDescription;
+  var sunSign;
+  var sunSignPartner;
+  var birthNumberDescription;
+  var lifePathDescription;
+  var yourSunSignRec;
+  var yourSunSignFirstOld;
+  var yourSunSignFirst;
+  var yourSunSignSec;
+
+  ///Add celebrity part
+  Future<dynamic> getCelebrityJSON() async {
+    var celebrityJson = await rootBundle.loadString('assets/celebrity.json');
+    var parsedJson = json.decode(celebrityJson);
+    var celebData = parsedJson;
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    for (var i = 0; i < celebData.length; i++) {
+      var gender = celebData[i]['gender'];
+
+      if (my_gender != gender) {
+        celebrityList.add(celebData[i]);
+      }
+    }
+
+    celebrityInList = (prefs.getStringList('celebrityIn') ?? List<String>());
+
+    if (celebrityInList != null) {
+      for (int i = 0; i < celebrityList.length; i++) {
+        if (celebrityInList.contains(celebrityList[i]['name'])) {
+        } else {
+          randomCelebrityList.add(celebrityList[i]);
+        }
+      }
+    } else {
+      randomCelebrityList.addAll(celebrityList);
+    }
+
+    if (randomCelebrityList.length != 0) {
+      int randomIndex = math.Random().nextInt(randomCelebrityList.length);
+      randomCelebrity = randomCelebrityList[randomIndex];
+      celebrityInList.add(randomCelebrity['name']);
+      prefs.setStringList("celebrityIn", celebrityInList);
+      getCelebrityResult();
+    } else {
+      showAlertDialog(
+          context, "Oops!", "You've gone through all the celebrities!");
+      setState(() {
+        isCelebClick = false;
+      });
+    }
+  }
+
+  getCelebrityResult() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    my_name = prefs.getString('my_name') ?? "";
+    my_birth_country_code = prefs.getString('my_birth_country_code') ?? "";
+    my_birth_date = prefs.getString('my_birth_date') ?? "";
+    my_birth_time = prefs.getString('my_birth_time') ?? "";
+    my_birth_latitude = prefs.getString('my_birth_latitude') ?? "";
+    my_birth_longitude = prefs.getString('my_birth_longitude') ?? "";
+    my_gender = prefs.getString('my_gender') ?? "";
+    celebrityListJson = prefs.getString('celebrityListJson') ?? "";
+    if (celebrityListJson != "") {
+      celebrityListItemArray = json.decode(celebrityListJson);
+    } else {}
+
+    String url = Constant.baseURL +
+        "my_name=" +
+        my_name +
+        "&my_birth_country_code=" +
+        my_birth_country_code +
+        "&my_birth_date=" +
+        my_birth_date +
+        "&my_birth_time=" +
+        my_birth_time +
+        "&my_birth_latitude=" +
+        my_birth_latitude +
+        "&my_birth_longitude=" +
+        my_birth_longitude +
+        "&my_gender=" +
+        my_gender +
+        "&partner_birth_country_code=" +
+        "LK" +
+        "&partner_name=" +
+        randomCelebrity['name'] +
+        "&partner_birth_date=" +
+        randomCelebrity['date_of_birth'] +
+        "&partner_birth_time=" +
+        "12:00AM" +
+        "&partner_birth_latitude=" +
+        randomCelebrity['latitude'] +
+        "&partner_birth_longitude=" +
+        randomCelebrity['longitude'] +
+        "&partner_gender=" +
+        randomCelebrity['gender'];
+
+    bool networkResults = await networkHelper.checkNetwork();
+    if (networkResults) {
+      final response = await http.get(Uri.encodeFull(url), headers: {
+        "X-Api-Token": "UO7NJM0YM7UK9LSBA7SX",
+        "X-Api-Secret": "T6MBIcumAgYkEaDDAOOHYAJIkjYJi4aFICEWawNQ95cCPgi4QD",
+      });
+
+      int responseCode = response.statusCode;
+      if (responseCode == 200) {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        prefs.setString('responseCeleb', response.body.toString());
+
+        var levelJson = jsonDecode(response.body.toString());
+        var level = levelJson['data']['match']['level'];
+
+        if (level == "1") {
+          description = levelDes1[math.Random().nextInt(levelDes1.length)];
+        } else if (level == "2") {
+          description = levelDes2[math.Random().nextInt(levelDes2.length)];
+        } else if (level == "3") {
+          description = levelDes3[math.Random().nextInt(levelDes3.length)];
+        } else if (level == "4") {
+          description = levelDes4[math.Random().nextInt(levelDes4.length)];
+        } else if (level == "5") {
+          description = levelDes5[math.Random().nextInt(levelDes5.length)];
+        } else if (level == "6") {
+          description = levelDes6[math.Random().nextInt(levelDes6.length)];
+        }
+
+        celebrityListObject = {
+          'partner_birth_country_code': "LK",
+          'partner_name': randomCelebrity['name'],
+          'partner_birth_date': randomCelebrity['date_of_birth'],
+          'partner_birth_time': "12:00AM",
+          'partner_birth_latitude': randomCelebrity['latitude'],
+          'partner_birth_longitude': randomCelebrity['longitude'],
+          'partner_gender': randomCelebrity['gender'],
+          'partner_score_description': description,
+          'resultJson': response.body.toString(),
+        };
+
+        celebrityListItemArray.add(celebrityListObject);
+        String celebrityListJson = jsonEncode(celebrityListItemArray);
+
+        partnerListJson = prefs.getString('partnerListJson') ?? "";
+        if (partnerListJson != "") {
+          partnerListItemArray = json.decode(partnerListJson);
+          partnersCount = partnerListItemArray.length;
+        }
+
+        if (celebrityListJson != "") {
+          celebrityListItemArray = json.decode(celebrityListJson);
+          celebrityCount = celebrityListItemArray.length;
+        }
+
+        prefs.setString('celebrityListJson', celebrityListJson);
+
+        //get array
+
+        String responseJson = prefs.getString('responseCeleb') ?? "";
+        var parsedJson = json.decode(responseJson);
+        var faveterms = parsedJson['data']['match']['score'];
+
+        setState(() {
+          scoreNew = faveterms;
+
+          prefs.setInt('home_index', partnersCount + celebrityCount + 1);
+
+          isCelebClick = false;
+
+          (context as Element).reassemble();
+
+          Navigator.pushReplacement(
+            context,
+            PageRouteBuilder(
+                pageBuilder: (context, animation1, animation2) => HomeHero(
+                      partnerCount: partnersCount,
+                      celebrityCount: celebrityCount,
+                    ),
+                transitionDuration: Duration(seconds: 1)),
+          );
+        });
+      } else if (responseCode == 503) {
+        showAlertDialog(context, "Server Error!",
+            "Service temporary Unavailable.Please try again shortly.");
+      } else if (responseCode == 500) {
+        showAlertDialog(context, "Server Error!", "Please try again shortly.");
+      }
+    } else {
+      showAlertDialog(
+          context, "Network Error", "Please turn on your internet!");
+    }
+  }
+
+  showAlertDialog(BuildContext context, String title, String description) {
+    // set up the buttons
+
+    Widget continueButton = FlatButton(
+      child: Text("OK"),
+      onPressed: () {
+        setState(() {
+          Navigator.pop(context);
+        });
+      },
+    );
+
+    // set up the AlertDialog
+    alert = AlertDialog(
+      title: Text(title),
+      content: Text(description),
+      actions: [
+        continueButton,
+      ],
+    );
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
+  }
+}
+
+class MyBehavior extends ScrollBehavior {
+  @override
+  Widget buildViewportChrome(
+      BuildContext context, Widget child, AxisDirection axisDirection) {
+    return child;
+  }
+}
